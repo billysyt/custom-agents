@@ -96,7 +96,8 @@ def create_app(settings=None):
     @app.middleware('http')
     async def auth(request, call_next):
         path=request.url.path
-        if path in {'/health/live','/health/ready','/.well-known/agent-card.json','/.well-known/agent.json'}:
+        if path in {'/health/live','/health/ready','/.well-known/agent-card.json','/.well-known/agent.json',
+                '/a2a/.well-known/agent-card.json','/a2a/.well-known/agent.json'}:
             return await call_next(request)
         auth=request.headers.get('Authorization','')
         bearer=auth.startswith('Bearer ') and hmac.compare_digest(auth[7:],settings.api_key)
@@ -127,6 +128,8 @@ def create_app(settings=None):
         return {'status':'ok','database':'connected'}
     @app.get('/.well-known/agent-card.json')
     @app.get('/.well-known/agent.json')
+    @app.get('/a2a/.well-known/agent-card.json')
+    @app.get('/a2a/.well-known/agent.json')
     async def agent_card():
         return card(settings)
     @app.post('/a2a')

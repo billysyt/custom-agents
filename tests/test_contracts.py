@@ -65,7 +65,7 @@ async def test_a2a_async_task_and_message_deduplication():
 
 async def test_auth_and_csrf(tmp_path):
     from custom_agents.app import create_app
-    settings=SimpleNamespace(database_url='postgresql://unused',api_key='secret',trust_sso=True,public_url='https://example.com/agents/news')
+    settings=SimpleNamespace(database_url='postgresql://unused',api_key='secret',trust_sso=True,public_url='https://example.com/agents/news',a2a_url='http://test/a2a')
     app=create_app(settings)
     async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),base_url='http://test') as client:
         assert (await client.get('/agents/news/')).status_code==401
@@ -73,3 +73,7 @@ async def test_auth_and_csrf(tmp_path):
         assert (await client.get('/agents/news/',headers={'Authorization':'Bearer secret'})).status_code==200
         assert (await client.post('/agents/news/jobs',json={},headers={'X-authentik-username':'owner','Origin':'https://evil.test'})).status_code==403
         assert (await client.get('/health/live')).json()=={'status':'ok'}
+        # LiteLLM resolves discovery relative to the configured JSON-RPC URL.
+        for path in ['/.well-known/agent-card.json','/a2a/.well-known/agent-card.json']:
+            response=await client.get(path)
+            assert response.status_code==200 and response.json()['url']=='http://test/a2a'

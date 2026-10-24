@@ -77,7 +77,8 @@ and `cover.png` under the same prefix. Explicitly retry with `POST /jobs/{id}/re
 
 The service is an **agent**, while Qwen and MOSS remain **models**. Register this service in
 LiteLLM's A2A agent registry rather than pretending it is a model. Agent discovery is at
-`/.well-known/agent-card.json`. The JSON-RPC endpoint `/a2a` implements **A2A 0.3**
+`/.well-known/agent-card.json` (also `/a2a/.well-known/agent-card.json` for clients
+that resolve discovery relative to the RPC URL). The JSON-RPC endpoint `/a2a` implements **A2A 0.3**
 `message/send` and `tasks/get`. Streaming, push notifications and cancellation are not advertised.
 A send returns a durable submitted/working task immediately; poll its ID for artifacts.
 Message IDs are idempotent. Supply an optional `params.metadata.news_request` object to set
