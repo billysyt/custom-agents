@@ -93,7 +93,7 @@ class NewsWorkflow:
             return json.dumps(await web.read(url), ensure_ascii=False)
         skill = (self.settings.skills_dir / 'websearch/SKILL.md').read_text()
         # StateBackend exposes only virtual, per-invocation files: no shell or host filesystem.
-        agent = create_deep_agent(model=self.model, tools=[web_search, read_page], backend=StateBackend,
+        agent = create_deep_agent(model=self.model, tools=[web_search, read_page], backend=StateBackend(),
             skills=['/skills/'], system_prompt=f'''You are a careful news researcher. Today is {datetime.now(timezone.utc).date().isoformat()} UTC.
 Read /skills/websearch/SKILL.md and follow it. Use web_search and read_page to collect
 at least three readable sources from two publishers, ideally original announcements.
