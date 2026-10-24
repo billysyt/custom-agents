@@ -81,6 +81,7 @@ LiteLLM's A2A agent registry rather than pretending it is a model. Agent discove
 that resolve discovery relative to the RPC URL). The JSON-RPC endpoint `/a2a` implements **A2A 0.3**
 `message/send` and `tasks/get`. Streaming, push notifications and cancellation are not advertised.
 A send returns a durable submitted/working task immediately; poll its ID for artifacts.
+The completed cover is embedded as A2A file bytes so API clients need no browser SSO session.
 Message IDs are idempotent. Supply an optional `params.metadata.news_request` object to set
 language/length/cover; otherwise the message text is the topic and defaults apply.
 

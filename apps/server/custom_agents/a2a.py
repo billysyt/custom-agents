@@ -3,6 +3,7 @@
 Non-streaming, async tasks; message/send returns immediately. Clients poll tasks/get.
 The adapter intentionally advertises no unsupported streaming or push capabilities.
 """
+import base64
 import uuid
 from custom_agents.news import NewsRequest
 
@@ -28,8 +29,16 @@ def task(row, settings):
         text=r['article']['title']+'\n\n'+r['article']['body']+'\n\n'+ '\n'.join(f"[{s['id']}] {s['url']}" for s in r['sources'])
         result['artifacts']=[{'artifactId':'article','name':'article','parts':[{'kind':'text','text':text},{'kind':'data','data':r}]}]
         if r.get('cover'):
+            # Machine clients receive the image through the authenticated gateway;
+            # the studio file URL uses browser SSO and is unsuitable for API clients.
+            cover_path=settings.data_dir/str(row['id'])/'cover.png'
+            cover_file={'name':'cover.png','mimeType':'image/png'}
+            if cover_path.is_file():
+                cover_file['bytes']=base64.b64encode(cover_path.read_bytes()).decode('ascii')
+            else:
+                cover_file['uri']=settings.public_url+'/jobs/'+str(row['id'])+'/files/cover.png'
             result['artifacts'].append({'artifactId':'cover','name':'AI-generated editorial illustration',
-                'parts':[{'kind':'file','file':{'name':'cover.png','mimeType':'image/png','uri':settings.public_url+'/jobs/'+str(row['id'])+'/files/cover.png'}}]})
+                'parts':[{'kind':'file','file':cover_file}]})
     return result
 
 

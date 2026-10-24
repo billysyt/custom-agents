@@ -77,3 +77,13 @@ async def test_auth_and_csrf(tmp_path):
         for path in ['/.well-known/agent-card.json','/a2a/.well-known/agent-card.json']:
             response=await client.get(path)
             assert response.status_code==200 and response.json()['url']=='http://test/a2a'
+
+def test_completed_a2a_cover_is_accessible_without_browser_sso(tmp_path):
+    import base64
+    job_id=uuid.uuid4();directory=tmp_path/str(job_id);directory.mkdir()
+    png=b'\x89PNG\r\n\x1a\nexample';(directory/'cover.png').write_bytes(png)
+    row={'id':job_id,'status':'completed','stage':'completed','updated_at':datetime.now(timezone.utc),
+        'error':None,'result':{'article':{'title':'Example','body':'News'},'sources':[],'cover':'cover.png'}}
+    result=task(row,SimpleNamespace(public_url='https://example.com/agents/news',data_dir=tmp_path))
+    file=result['artifacts'][1]['parts'][0]['file']
+    assert base64.b64decode(file['bytes'])==png and 'uri' not in file

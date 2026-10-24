@@ -33,5 +33,5 @@ async function refresh(){
   if(!selected&&jobs.length)select(jobs[0].id);else if(selected){const j=jobs.find(j=>j.id===selected)||await api('/jobs/'+selected);renderJob(j);}
 }
 el('new-job').addEventListener('submit',async e=>{e.preventDefault();if(submitting)return;submitting=true;const button=e.target.querySelector('button');button.disabled=true;el('form-error').textContent='';try{const j=await api('/jobs',{method:'POST',headers:{'Idempotency-Key':crypto.randomUUID()},body:JSON.stringify({topic:el('topic').value,language:el('language').value,length:Number(el('length').value),cover:el('cover').checked})});select(j.id);}catch(e){showError(e);}finally{submitting=false;button.disabled=false;}});
-el('retry').onclick=async()=>{try{await api('/jobs/'+selected+'/retry',{method:'POST'});await refresh();}catch(e){showError(e);}};
+el('retry').onclick=async()=>{try{await api('/jobs/'+selected+'/retry',{method:'POST'});el('form-error').textContent='';await refresh();}catch(e){showError(e);}};
 refresh().catch(showError);setInterval(()=>{if(!document.hidden)refresh().catch(showError);},5000);
