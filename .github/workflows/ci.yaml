@@ -8,6 +8,19 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: agents
+          POSTGRES_PASSWORD: ci-disposable
+          POSTGRES_DB: agents_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U agents -d agents_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://agents:ci-disposable@localhost:5432/agents_test
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v5
