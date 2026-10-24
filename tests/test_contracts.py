@@ -5,7 +5,7 @@ import uuid
 import pytest
 import httpx
 from custom_agents.a2a import dispatch, task
-from custom_agents.news import NewsRequest, validate_citations
+from custom_agents.news import NewsRequest, NewsWorkflow, article_length, validate_citations
 from agent_core.web import public_url, resolve_public, Web
 
 @pytest.mark.parametrize('url',['file:///etc/passwd','http://user:pw@example.com/','https://example.com:8443/'])
@@ -23,6 +23,33 @@ def test_citation_integrity():
     validate_citations({'body':'A [1] and B [2]'},sources)
     for text in ['No citation','Only [1]','Invented [1] [3]','[1][2] https://invented.test']:
         with pytest.raises(ValueError):validate_citations({'body':text},sources)
+
+def test_mixed_chinese_length_excludes_citations_and_model_names():
+    assert article_length('本地 AI 模型 Qwen3.6，支援 262K context。[1][23]', '繁體中文（香港用語）') == (6, 'Chinese characters')
+    assert article_length('Open-weight models run locally. [1][2]', 'English') == (4, 'words')
+
+async def test_review_repairs_oversized_draft_and_refuses_unbounded_output():
+    workflow=object.__new__(NewsWorkflow)
+    async def stage(*args):pass
+    workflow.stage=stage
+    oversized={'title':'Example title','body':'新聞內容'*300+'[1][2]','cover_prompt':'An editorial illustration'}
+    valid={**oversized,'body':'新聞內容'*180+'[1][2]'}
+    state={'job_id':'example','request':NewsRequest().model_dump(),'sources':[{'id':1},{'id':2}],
+        'brief':'Verified sources','article':oversized,'timings':{}}
+    calls=[]
+    async def repair(system,data):
+        calls.append(data)
+        return oversized if len(calls)==1 else valid
+    workflow.article_call=repair
+    result=await workflow.review(state)
+    assert result['article']==valid and len(calls)==2
+    assert '1200 Chinese characters' in calls[1] and '600–900' in calls[1]
+    calls.clear()
+    async def never_fits(*args):calls.append(1);return oversized
+    workflow.article_call=never_fits
+    with pytest.raises(ValueError,match='Article length'):
+        await workflow.review(state)
+    assert len(calls)==3
 
 async def test_reader_cannot_read_unsearched_url():
     web=Web('http://search:8080')
