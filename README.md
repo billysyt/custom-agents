@@ -30,7 +30,8 @@ Research uses a Deep Agent with search/read tools and the websearch skill. It ha
 host filesystem or delegated agents. The other stages use the same local Qwen route through
 LiteLLM. Source IDs are validated before the final article is saved. Final body length
 must be within 20% of the requested target (Chinese characters for Chinese, words for
-other languages). Up to two bounded revisions correct length before cover generation.
+other languages). Up to two bounded revisions correct measured length and citation
+errors before cover generation.
 
 SearXNG is free, self-hosted and internal. Its upstream search engines can rate-limit or fail;
 a run with insufficient readable sources fails visibly instead of inventing a story. Search

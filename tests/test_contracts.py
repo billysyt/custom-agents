@@ -62,6 +62,30 @@ async def test_review_repairs_oversized_draft_and_refuses_unbounded_output():
         await workflow.review(state)
     assert len(calls)==3
 
+async def test_review_repairs_missing_or_invalid_citations_without_losing_evidence():
+    workflow=object.__new__(NewsWorkflow)
+    async def stage(*args):pass
+    workflow.stage=stage
+    article={'title':'Example title','body':'新聞內容'*180+'[1][2]',
+        'cover_prompt':'An editorial illustration'}
+    sources=[{'id':1,'text':'first evidence'},{'id':2,'text':'second evidence'}]
+    state={'job_id':'example','request':NewsRequest().model_dump(),'sources':sources,
+        'brief':'Verified sources','article':article,'timings':{}}
+    for invalid in ['','[1][99]']:
+        calls=[]
+        async def repair(system,data):
+            calls.append(data)
+            return {**article,'body':'新聞內容'*180+invalid} if len(calls)==1 else article
+        workflow.article_call=repair
+        result=await workflow.review(state)
+        assert result['article']==article and len(calls)==2
+        assert 'VALIDATION ERRORS' in calls[1] and 'second evidence' in calls[1]
+        assert 'VALID SOURCE IDS: 1, 2' in calls[1]
+    async def never_fixes(*args):return {**article,'body':'新聞內容'*180+'[1][99]'}
+    workflow.article_call=never_fixes
+    with pytest.raises(ValueError,match='at least two successfully read sources'):
+        await workflow.review(state)
+
 async def test_reader_cannot_read_unsearched_url():
     web=Web('http://search:8080')
     try:assert 'error' in await web.read('https://example.com/')
