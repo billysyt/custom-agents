@@ -28,6 +28,17 @@ def test_mixed_chinese_length_excludes_citations_and_model_names():
     assert article_length('本地 AI 模型 Qwen3.6，支援 262K context。[1][23]', '繁體中文（香港用語）') == (6, 'Chinese characters')
     assert article_length('Open-weight models run locally. [1][2]', 'English') == (4, 'words')
 
+def test_length_revision_gives_direction_and_only_relevant_evidence():
+    request=NewsRequest().model_dump()
+    short={'body':'新聞'*200+'[1][2]'}
+    instruction=NewsWorkflow.length_instruction(short,request)
+    assert 'EXPAND' in instruction and '1.88 times' in instruction and '每段約 125 個漢字' in instruction
+    assert 'SHORTEN' in NewsWorkflow.length_instruction({'body':'文'*1200},request)
+    sources=[{'id':1,'text':'a'},{'id':2,'text':'b'},{'id':3,'text':'unrelated'}]
+    import json
+    evidence=json.loads(NewsWorkflow.revision_evidence({'request':request,'sources':sources,'brief':'unrelated'},short))
+    assert evidence['sources']==sources[:2] and 'brief' not in evidence
+
 async def test_review_repairs_oversized_draft_and_refuses_unbounded_output():
     workflow=object.__new__(NewsWorkflow)
     async def stage(*args):pass
