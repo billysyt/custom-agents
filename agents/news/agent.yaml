@@ -1,0 +1,10 @@
+name: news-writer
+version: 0.1.0
+protocol: A2A 0.3 JSON-RPC
+workflow: [research, draft, review, cover, save]
+skills: [skills/websearch]
+defaults:
+  topic: 近期開源 AI／本地模型新聞
+  language: 繁體中文（香港用語）
+  length: 750
+  cover: true

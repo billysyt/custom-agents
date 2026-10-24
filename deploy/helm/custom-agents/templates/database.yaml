@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: custom-agents-postgresql
+  annotations:
+    argocd.argoproj.io/sync-wave: '-2'
+    argocd.argoproj.io/sync-options: Prune=false,Delete=false
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: {{ .Values.storage.className }}
+  resources:
+    requests:
+      storage: {{ .Values.postgresql.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: custom-agents-postgresql
+spec:
+  selector: {app: custom-agents-postgresql}
+  ports: [{name: postgres, port: 5432}]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: custom-agents-postgresql
+  annotations:
+    argocd.argoproj.io/sync-wave: '-2'
+spec:
+  serviceName: custom-agents-postgresql
+  replicas: 1
+  selector:
+    matchLabels: {app: custom-agents-postgresql}
+  template:
+    metadata:
+      labels: {app: custom-agents-postgresql}
+    spec:
+      automountServiceAccountToken: false
+      securityContext: {runAsUser: 999, runAsGroup: 999, fsGroup: 999}
+      containers:
+      - name: postgresql
+        image: {{ .Values.postgresql.image }}
+        args: ['-c', 'max_connections=25', '-c', 'shared_buffers=48MB']
+        env:
+        - {name: POSTGRES_DB, value: agents}
+        - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef: {name: {{ .Values.postgresql.existingSecret }}, key: username}
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef: {name: {{ .Values.postgresql.existingSecret }}, key: password}
+        ports: [{name: postgres, containerPort: 5432}]
+        resources: {{ .Values.postgresql.resources | toJson }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities: {drop: [ALL]}
+        readinessProbe:
+          exec: {command: [pg_isready, -U, agents, -d, agents]}
+          initialDelaySeconds: 5
+        livenessProbe:
+          exec: {command: [pg_isready, -U, agents, -d, agents]}
+          initialDelaySeconds: 30
+        volumeMounts:
+        - {name: data, mountPath: /var/lib/postgresql/data}
+        - {name: socket, mountPath: /var/run/postgresql}
+      volumes:
+      - name: data
+        persistentVolumeClaim: {claimName: custom-agents-postgresql}
+      - name: socket
+        emptyDir: {sizeLimit: 16Mi}

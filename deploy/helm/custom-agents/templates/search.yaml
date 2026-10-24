@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-agents-search
+  annotations:
+    argocd.argoproj.io/sync-wave: '-2'
+data:
+  settings.yml: |
+    use_default_settings: true
+    general:
+      instance_name: Custom Agents Search
+      enable_metrics: false
+    search:
+      formats: [json]
+    server:
+      bind_address: 0.0.0.0
+      port: 8080
+      limiter: false
+      image_proxy: false
+    outgoing:
+      request_timeout: 10.0
+      max_request_timeout: 18.0
+    engines:
+      - name: google
+        disabled: true
+      - name: bing
+        disabled: true
+      - name: brave
+        disabled: false
+      - name: duckduckgo
+        disabled: false
+      - name: startpage
+        disabled: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: custom-agents-search
+spec:
+  selector: {app: custom-agents-search}
+  ports: [{name: http, port: 8080}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: custom-agents-search
+  annotations:
+    argocd.argoproj.io/sync-wave: '-2'
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: custom-agents-search}
+  template:
+    metadata:
+      labels: {app: custom-agents-search}
+      annotations:
+        checksum/config: {{ .Values.searxng | toJson | sha256sum }}
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - name: searxng
+        image: {{ .Values.searxng.image }}
+        env:
+        - {name: SEARXNG_SETTINGS_PATH, value: /etc/searxng/settings.yml}
+        - name: SEARXNG_SECRET
+          valueFrom:
+            secretKeyRef: {name: {{ .Values.searxng.existingSecret }}, key: secret-key}
+        ports: [{name: http, containerPort: 8080}]
+        resources: {{ .Values.searxng.resources | toJson }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities: {drop: [ALL]}
+        readinessProbe:
+          httpGet: {path: /healthz, port: http}
+          initialDelaySeconds: 10
+        livenessProbe:
+          httpGet: {path: /healthz, port: http}
+          initialDelaySeconds: 40
+        volumeMounts:
+        - {name: config, mountPath: /etc/searxng, readOnly: true}
+        - {name: cache, mountPath: /var/cache/searxng}
+      volumes:
+      - name: config
+        configMap: {name: custom-agents-search}
+      - name: cache
+        emptyDir: {sizeLimit: 128Mi}
