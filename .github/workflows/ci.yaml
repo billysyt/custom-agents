@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:17
+        image: pgvector/pgvector:0.8.2-pg17-trixie
         env:
           POSTGRES_USER: agents
           POSTGRES_PASSWORD: ci-disposable

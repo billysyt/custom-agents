@@ -26,6 +26,10 @@ def task(row, settings):
         'metadata':{'stage':row['stage'],'webUrl':settings.public_url+'/?job='+str(row['id'])}}
     if row['result']:
         r=row['result']
+        if r.get('status')=='duplicate':
+            result['artifacts']=[{'artifactId':'duplicate','name':'Duplicate news skipped',
+                'parts':[{'kind':'text','text':r['reason']},{'kind':'data','data':r}]}]
+            return result
         text=r['article']['title']+'\n\n'+r['article']['body']+'\n\n'+ '\n'.join(f"[{s['id']}] {s['url']}" for s in r['sources'])
         result['artifacts']=[{'artifactId':'article','name':'article','parts':[{'kind':'text','text':text},{'kind':'data','data':r}]}]
         if r.get('cover'):

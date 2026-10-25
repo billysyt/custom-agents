@@ -16,3 +16,4 @@ class Settings:
     public_url: str = field(default_factory=lambda: os.getenv('PUBLIC_URL', 'http://localhost:8000/agents/news'))
     a2a_url: str = field(default_factory=lambda: os.getenv('A2A_URL', 'http://localhost:8000/a2a'))
     trust_sso: bool = field(default_factory=lambda: os.getenv('TRUST_SSO', 'false').lower() == 'true')
+    embedding_model: str = field(default_factory=lambda: os.getenv('EMBEDDING_MODEL', 'bge-m3'))

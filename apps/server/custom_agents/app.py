@@ -17,7 +17,7 @@ from custom_agents.news import NewsRequest, NewsWorkflow
 from custom_agents.a2a import card, dispatch
 
 LOG = logging.getLogger('custom-agents')
-STAGES = {'queued','research','draft','review','cover','save','completed'}
+STAGES = {'queued','research','draft','review','novelty','originality','duplicate','cover','save','completed'}
 
 async def worker(store, workflow):
     while True:
@@ -48,7 +48,7 @@ async def worker(store, workflow):
                                 if health in done:
                                     health.result()  # lost lock connection: cancel run and recover later
                                 result=await run
-                            await store.update(row['id'], status='completed', stage='completed', result=result, error=None)
+                            await store.update(row['id'], status='completed', stage='duplicate' if result['status']=='duplicate' else 'completed', result=result, error=None)
                         except asyncio.CancelledError:
                             raise
                         except Exception as exc:
@@ -80,6 +80,8 @@ def create_app(settings=None):
         checkpoint=AsyncPostgresSaver(store.pool)
         await checkpoint.setup()
         workflow=NewsWorkflow(settings,store,checkpoint)
+        await workflow.archive.setup()
+        app.state.workflow=workflow
         process=asyncio.create_task(worker(store,workflow))
         app.state.worker=process
         try:
@@ -148,6 +150,13 @@ def create_app(settings=None):
     @app.get('/agents/news/')
     async def index():
         return FileResponse(Path(__file__).parent/'static/index.html')
+    @app.get('/agents/news/status')
+    async def agent_status():
+        await store.healthy()
+        return {'worker':'running' if not app.state.worker.done() else 'stopped',
+            'archive':await app.state.workflow.archive.stats(),'embedding_model':settings.embedding_model,
+            'observability_url':'https://langfuse.x-lab.hk',
+            'dedup_scope':'Our article archive and successfully read source passages; not the entire web.'}
     @app.get('/agents/news/jobs')
     async def jobs():
         return await store.list()

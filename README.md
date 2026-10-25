@@ -3,7 +3,7 @@
 Self-hosted research and writing agents with **Deep Agents + LangGraph**, PostgreSQL,
 LiteLLM and local image generation. MIT licensed. The first agent is a small news studio.
 
-Research a topic → read sources → draft → review against sources → create a cover → save.
+Research → retrieve archive → novelty check → draft → fact/style review → originality check → cover → save.
 The service produces **drafts**, with citations and an explicitly labelled AI illustration.
 It does not publish articles or execute code from the web.
 
@@ -49,7 +49,7 @@ There is no automatic backup component in this chart.
 
 ## Run locally
 
-Use Python 3.12+ and PostgreSQL 17+; provide a SearXNG instance with JSON search enabled.
+Use Python 3.12+ and PostgreSQL 17 with pgvector 0.8+; provide a SearXNG instance with JSON search enabled.
 Copy `.env.example` to `.env`, fill in a **scoped** LiteLLM key, and export the variables.
 
 ```sh
@@ -90,7 +90,7 @@ language/length/cover; otherwise the message text is the topic and defaults appl
 
 Register `agent_name: news-writer`, the fetched card in `agent_card_params`, and
 `static_headers.Authorization: Bearer <AGENT_API_KEY>` with an operator's LiteLLM admin key.
-The agent itself receives only a virtual key limited to the Qwen and MOSS routes.
+The agent itself receives only a virtual key limited to the Qwen, MOSS and BGE-M3 routes.
 Keep registration headers out of Git. Give client virtual keys explicit access to the agent.
 
 ## Deploy with GitOps
@@ -116,3 +116,37 @@ pytest -q
 Optional PostgreSQL integration tests use `TEST_DATABASE_URL` and a disposable database.
 The initial live acceptance run also exercises real search, Qwen writing, MOSS cover, A2A
 through LiteLLM, SSO and restart persistence; those require a configured private environment.
+
+## Observability and news deduplication
+
+Langfuse traces each job, LangGraph stage, nested research tool and model call. Job IDs
+are session IDs; outputs carry their trace IDs. Queue health and archive counts are at
+`GET /agents/news/status`. Langfuse provides the trace/experiment UI, while the Newsroom
+remains the durable queue and retry interface.
+
+BGE-M3 Q8 (1024 dimensions, CLS pooling) runs through LiteLLM's embeddings endpoint.
+PostgreSQL/pgvector stores our completed articles and bounded passages from read sources,
+with an embedding model version. Existing completed articles are backfilled before novelty
+checks. Exact cosine search is appropriate for this small corpus; no extra vector service
+or approximate index is required. Similarity retrieves candidates; Qwen decides whether
+core facts repeat or a verified new development justifies a follow-up. Duplicate jobs finish
+with an auditable reason and no cover. A second check after drafting catches a repeated
+angle. Normalized lexical overlap plus a multilingual model check reject copying,
+translation and close paraphrases; one bounded rewrite is allowed. Failed checks stop
+before cover generation. This does not establish uniqueness across the entire internet.
+The comparison corpus is our archive and source pages successfully read by the agent.
+
+Set `LANGFUSE_BASE_URL`, `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` and
+`LANGFUSE_TRACING_ENVIRONMENT` on the worker; keys belong in a Kubernetes Secret.
+Use native OIDC for Langfuse UI access and API keys for ingestion. The versioned synthetic
+regression dataset tests cross-language repeats, different publishers, genuine new facts,
+and unrelated news using the real embedding/model routes:
+
+```sh
+python scripts/evaluate-news.py
+```
+
+This creates the `news-novelty-regression` dataset and an experiment with accuracy scores.
+It does not insert synthetic articles into the production news archive. Run it when changing
+models, prompts or retrieval thresholds. The small suite is a regression check, not a
+statistical guarantee of editorial quality. Full article runs are separately visible as traces.

@@ -8,6 +8,9 @@ config:
   LITELLM_URL: http://litellm.litellm.svc.cluster.local:4000/v1
   TEXT_MODEL: qwen3.6-35b-a3b-q4
   IMAGE_MODEL: moss-image
+  EMBEDDING_MODEL: bge-m3
+  LANGFUSE_BASE_URL: http://langfuse-web.langfuse.svc.cluster.local:3000
+  LANGFUSE_TRACING_ENVIRONMENT: production
   PUBLIC_URL: http://localhost:8000/agents/news
   A2A_URL: http://custom-agents:8000/a2a
   TRUST_SSO: 'false'
@@ -18,7 +21,7 @@ storage:
   className: local-path-retain
   size: 5Gi
 postgresql:
-  image: postgres:17.11-trixie
+  image: pgvector/pgvector:0.8.2-pg17-trixie
   existingSecret: custom-agents-postgresql
   # Secret keys: username, password. Database name is agents.
   storage: 3Gi

@@ -50,3 +50,23 @@ async def test_checkpoint_resume_does_not_repeat_completed_stage():
         assert result['two']=='saved resumed'
         assert calls==['first','second','second']
     finally:await store.close()
+
+
+async def test_vector_archive_survives_reopen_and_excludes_current_job():
+    from agent_core.archive import Archive
+    store=Store(os.environ['TEST_DATABASE_URL']);await store.open()
+    key=str(uuid.uuid4());other=str(uuid.uuid4())
+    a=[1.0]+[0.0]*1023;b=[0.0,1.0]+[0.0]*1022
+    try:
+        archive=Archive(store);await archive.setup()
+        await archive.put('article',key,key,'Same event','content',a)
+        await archive.put('article',key,key,'Same event','updated content',a)
+        await archive.put('article',other,other,'Different event','other',b)
+        rows=await archive.nearest(a,exclude_job=other)
+        assert str(rows[0]['job_id'])==key and rows[0]['content']=='updated content'
+        assert rows[0]['similarity']==pytest.approx(1.0)
+        assert all(str(r['job_id'])!=key for r in await archive.nearest(a,exclude_job=key))
+    finally:await store.close()
+    store=Store(os.environ['TEST_DATABASE_URL']);await store.open()
+    try:assert str((await Archive(store).nearest(a))[0]['job_id'])==key
+    finally:await store.close()

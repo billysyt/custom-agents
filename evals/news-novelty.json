@@ -1,0 +1,6 @@
+[
+ {"input":{"previous":"On 10 October, ExampleLab released Model A with open weights and an Apache-2.0 licence. It supports 32k context.","proposed":"ExampleLab 於10月10日推出 Model A，採用 Apache-2.0 授權並開放權重，支援32k上下文。"},"expected_output":true,"metadata":{"case":"cross-language-same-event"}},
+ {"input":{"previous":"ExampleLab released Model A on 10 October, with a 32k context window.","proposed":"On 20 October ExampleLab released Model A version 1.1 fixing a disclosed remote code execution vulnerability. The security advisory identifies CVE-TEST-001 and recommends upgrading."},"expected_output":false,"metadata":{"case":"substantial-new-development"}},
+ {"input":{"previous":"ExampleLab released a language model with open weights on 10 October.","proposed":"The city observatory issued a typhoon warning today; schools will close tomorrow."},"expected_output":false,"metadata":{"case":"unrelated-news"}},
+ {"input":{"previous":"ExampleLab launched Model A on 10 October under Apache-2.0, supporting 32k context.","proposed":"A second publisher reports the same 10 October Model A release: 32k context, open weights and Apache-2.0. No further changes were announced."},"expected_output":true,"metadata":{"case":"different-publisher-same-event"}}
+]
