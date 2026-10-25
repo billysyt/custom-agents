@@ -43,5 +43,5 @@ result=lf.run_experiment(name='BGE-M3 Q8 + Qwen novelty',data=lf.get_dataset(nam
 lf.flush()
 print('Experiment:',result.experiment_url)
 for r in result.item_results:print(r.output,r.evaluations)
-if any(r.error or not r.evaluations or r.evaluations[0].value!=1 for r in result.item_results):
+if any(not r.output or not r.evaluations or r.evaluations[0].value!=1 for r in result.item_results):
     raise SystemExit('Novelty regression failed')
