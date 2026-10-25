@@ -1,6 +1,52 @@
 [
- {"input":{"previous":"On 10 October, ExampleLab released Model A with open weights and an Apache-2.0 licence. It supports 32k context.","proposed":"ExampleLab 於10月10日推出 Model A，採用 Apache-2.0 授權並開放權重，支援32k上下文。"},"expected_output":true,"metadata":{"case":"cross-language-same-event"}},
- {"input":{"previous":"ExampleLab released Model A on 10 October, with a 32k context window.","proposed":"On 20 October ExampleLab released Model A version 1.1 fixing a disclosed remote code execution vulnerability. The security advisory identifies CVE-TEST-001 and recommends upgrading."},"expected_output":false,"metadata":{"case":"substantial-new-development"}},
- {"input":{"previous":"ExampleLab released a language model with open weights on 10 October.","proposed":"The city observatory issued a typhoon warning today; schools will close tomorrow."},"expected_output":false,"metadata":{"case":"unrelated-news"}},
- {"input":{"previous":"ExampleLab launched Model A on 10 October under Apache-2.0, supporting 32k context.","proposed":"A second publisher reports the same 10 October Model A release: 32k context, open weights and Apache-2.0. No further changes were announced."},"expected_output":true,"metadata":{"case":"different-publisher-same-event"}}
+  {
+    "input": {
+      "previous": "On 10 October, ExampleLab released Model A with open weights and an Apache-2.0 licence. It supports 32k context.",
+      "proposed": "ExampleLab 於10月10日推出 Model A，採用 Apache-2.0 授權並開放權重，支援32k上下文。"
+    },
+    "expected_output": true,
+    "metadata": {
+      "case": "cross-language-same-event"
+    }
+  },
+  {
+    "input": {
+      "previous": "ExampleLab released Model A on 10 October, with a 32k context window.",
+      "proposed": "On 20 October ExampleLab released Model A version 1.1 fixing a disclosed remote code execution vulnerability. The security advisory identifies CVE-TEST-001 and recommends upgrading."
+    },
+    "expected_output": false,
+    "metadata": {
+      "case": "substantial-new-development"
+    }
+  },
+  {
+    "input": {
+      "previous": "ExampleLab released a language model with open weights on 10 October.",
+      "proposed": "The city observatory issued a typhoon warning today; schools will close tomorrow."
+    },
+    "expected_output": false,
+    "metadata": {
+      "case": "unrelated-news"
+    }
+  },
+  {
+    "input": {
+      "previous": "ExampleLab launched Model A on 10 October under Apache-2.0, supporting 32k context.",
+      "proposed": "A second publisher reports the same 10 October Model A release: 32k context, open weights and Apache-2.0. No further changes were announced."
+    },
+    "expected_output": true,
+    "metadata": {
+      "case": "different-publisher-same-event"
+    }
+  },
+  {
+    "input": {
+      "previous": "2026年10月24日，中國AI領域出現兩項重要動態。DeepSeek與MiniMax已履行登記手續，完成模型開源及海外授權。IBM高管指出開放權重模型性能已達閉源頂尖水平的90%，推動企業重新評估本地部署策略。",
+      "proposed": "Langfuse 推出新版開源 LLM observability 平台，提供 observation-first tracing、prompt management、datasets 與 experiments。自架部署由 PostgreSQL、ClickHouse、Redis 及 S3 組成，核心採用 MIT 授權，但部分企業功能另外授權。"
+    },
+    "expected_output": false,
+    "metadata": {
+      "case": "different-ai-news-not-same-event"
+    }
+  }
 ]
