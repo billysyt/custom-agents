@@ -41,3 +41,26 @@ def test_duplicate_a2a_is_completed_without_article_or_cover():
     result=task(row,SimpleNamespace(public_url='https://example.com'))
     assert result['status']['state']=='completed'
     assert result['artifacts'][0]['artifactId']=='duplicate'
+
+
+async def test_duplicate_evidence_repair_is_bounded_and_still_checks_quotes():
+    w=object.__new__(NewsWorkflow)
+    w.embeddings=SimpleNamespace(embed=AsyncMock(return_value=[[1.0]*1024]))
+    previous=str(uuid.uuid4())
+    text='ExampleLab launched Model A. It supports a 32k context window.'
+    w.archive=SimpleNamespace(nearest=AsyncMock(return_value=[{
+        'job_id':previous,'title':'Old release','content':text,'similarity':0.94}]))
+    valid={'duplicate':True,'matched_job_id':previous,'new_facts':[],'reason':'Same model release.',
+        'matching_facts':[{'proposed_quote':'ExampleLab launched Model A','previous_quote':'ExampleLab launched Model A'},
+                          {'proposed_quote':'It supports a 32k context window','previous_quote':'It supports a 32k context window'}]}
+    invalid={**valid,'matching_facts':[{'proposed_quote':'ExampleLab launched...32k context window',
+        'previous_quote':'ExampleLab launched...32k context window'}]*2}
+    state={'job_id':str(uuid.uuid4())}
+    w.judge=AsyncMock(side_effect=[invalid,valid])
+    assert (await w.check_novelty(state,text))['duplicate']
+    assert w.judge.await_count==2
+    assert 'validation_feedback' in w.judge.call_args.args[2]
+    w.judge=AsyncMock(return_value=invalid)
+    with pytest.raises(ValueError,match='verifiable matching facts'):
+        await w.check_novelty(state,text)
+    assert w.judge.await_count==2
